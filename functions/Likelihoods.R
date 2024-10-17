@@ -77,7 +77,7 @@ partransform_s = function(theta.star, N=3, agsizes){
     dm[[j]] = dnbinom(1:agsizes[j]-1, mu = p$mu_dwell[j], size = 1/p$phi_dwell[j])
   }
   p$dm = dm
-  p$Gamma = LaMa::tpm_hsmm(omega, dm)
+  p$Gamma = LaMa::tpm_hsmm2(omega, dm)
   p$delta = LaMa::stationary(p$Gamma)
   return(p)
 }
@@ -172,7 +172,7 @@ partransform_sp2 = function(theta.star, N=3, L=24, K=c(1,1), agsizes, t1){
                      size = 1/p$Phi_dwell[,j])
   }
   p$dm = dm
-  p$Gamma = LaMa::tpm_phsmm(omega, dm)
+  p$Gamma = LaMa::tpm_phsmm2(omega, dm)
   p$delta = LaMa::stationary_p(p$Gamma, t = t1)
   return(p)
 }
