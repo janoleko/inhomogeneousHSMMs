@@ -1,10 +1,18 @@
+## Likelihood functions for simulation study
+# This file contains three different likelihood functions for the simulation study.
+# The main difference to the likelihoods for the applications are that Poisson dwell times are used
+# and the incorporation of RTMB::DataEval(), such that the observations can be changed without rebuilding the tape.
+
 ## periodically inhomogeneous HMM
 nllpHMM = function(par){
+  getAll(par, .GlobalEnv$dat)
   
   # data eval allows for changing the data without rebuilding the tape
-  getData = function(x) dat
-  data = DataEval(getData, rep(advector(1), 0))
-  getAll(par, data)
+  getStep = function(x) obs$step
+  getAngle = function(x) obs$angle
+  step = DataEval(getStep, rep(advector(1), 0))
+  angle = DataEval(getAngle, rep(advector(1), 0))
+  ###############################################
   
   mu = exp(logmu); REPORT(mu)
   sigma = exp(logsigma); REPORT(sigma)
@@ -21,11 +29,14 @@ nllpHMM = function(par){
 
 ## homogeneous HSMM
 nllHSMM = function(par){
+  getAll(par, .GlobalEnv$dat)
   
   # data eval allows for changing the data without rebuilding the tape
-  getData = function(x) dat
-  data = DataEval(getData, rep(advector(1), 0))
-  getAll(par, data)
+  getStep = function(x) obs$step
+  getAngle = function(x) obs$angle
+  step = DataEval(getStep, rep(advector(1), 0))
+  angle = DataEval(getAngle, rep(advector(1), 0))
+  ###############################################
   
   # parameter transformations
   mu = exp(logmu); REPORT(mu)
@@ -58,6 +69,7 @@ nllpHSMM = function(par){
   getAngle = function(x) obs$angle
   step = DataEval(getStep, rep(advector(1), 0))
   angle = DataEval(getAngle, rep(advector(1), 0))
+  ###############################################
   
   # parameter transformations
   mu = exp(logmu); REPORT(mu)
