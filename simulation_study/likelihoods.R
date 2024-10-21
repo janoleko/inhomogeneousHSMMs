@@ -17,14 +17,16 @@ nllpHMM = function(par){
   mu = exp(logmu); REPORT(mu)
   sigma = exp(logsigma); REPORT(sigma)
   kappa = exp(logkappa); REPORT(kappa)
-  Gamma = tpm_g(Z, beta, ad = TRUE)
-  delta = stationary_p(Gamma, t = tod[1], ad = TRUE)
+  Gamma_p = tpm_g(Z, beta, ad = TRUE); REPORT(Gamma_p)
+  delta = stationary_p(Gamma_p, t = tod[1], ad = TRUE)
+  
   allprobs = matrix(NA, nrow = length(step), ncol = N)
+  ind = which(!is.na(step) & !is.na(angle))
   for(j in 1:N){
     allprobs[ind,j] = dgamma2(step[ind], mu[j], sigma[j])*
       dvm(angle[ind], 0, kappa = kappa[j])
   }
-  -forward_g(delta, Gamma[,,tod], allprobs, tod, ad = TRUE)
+  -forward_g(delta, Gamma_p[,,tod], allprobs, ad = TRUE)
 }
 
 ## homogeneous HSMM
