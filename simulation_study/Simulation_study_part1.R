@@ -1,10 +1,138 @@
+##### Part 2: Consistency #####
 
-# functions
-source("./functions/sim_study_functions.R")
 
-# libraries
-library(parallel)
+# Functions and libraries -------------------------------------------------
+
+source("./functions/sim_study_functions.R") # simulating
+source("./simulation_study/likelihoods.R") # likelihoods
+
+library(doParallel)
+library(foreach)
 library(LaMa)
+library(RTMB)
+
+
+# Parameters and hyperparamters -------------------------------------------
+
+## Parameters
+beta = matrix(c(log(c(8,7,6)), -0.2, 0.2, -0.6, 0.3, -0.2, -0.4), nrow = 3)
+omega = matrix(c(0, 0.7, 0.3, 
+                 0.2, 0, 0.8,
+                 0.5, 0.5, 0), nrow = 3, byrow = TRUE)
+obsparams = list(
+  mu = c(20, 200, 800),
+  sigma = c(20, 150, 500),
+  kappa = c(0.2, 1, 2.5)
+)
+
+## Hyperparameter: aggregate sizes
+todseq = seq(0, 24, length=200)
+Z = cbind(1, trigBasisExp(todseq, 24))
+dM = exp(Z %*% t(beta))
+
+# get maximum mean for each state
+maxlambda = apply(dM, 2, max)
+
+# compute aggregate sizes relativ to maximum quantile for each state
+factors = c(0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3)
+Agsizes = matrix(NA, nrow = length(factors), ncol = 3)
+for(k in 1:length(factors)){
+  Agsizes[k,] = ceiling((qpois(0.99, maxlambda)+1) * factors[k]) 
+}
+
+
+
+# Simulation --------------------------------------------------------------
+
+# number of runs for each length
+nruns = 500
+
+Data = list()
+# simulating 500 data sets of length T = 5000
+set.seed(123)
+for(i in 1:nruns){
+  cat("\n", i)
+  Data[[i]] = sim_phsmm(5000, beta, omega, obsparams)
+}
+
+
+# initial parameter
+par = list(
+  beta = beta, 
+  logitomega = rep(0,3),
+  logmu = log(obsparams$mu), 
+  logsigma = log(obsparams$sigma), 
+  logkappa = log(obsparams$kappa)
+)
+
+# Prepare array to store results
+Betas = array(dim = c(3, 3, nruns, length(factors)))
+
+# Fitting HSMMs to data sets of increasing lengths
+for(k in 1:length(factors)){
+  cat("\nAggregate factor:", factors[k])
+  
+  # Define data
+  dat = list(
+    tod = Data[[1]]$tod,
+    N = 3,
+    agsizes = Agsizes[k,],
+    Z = cbind(1, trigBasisExp(1:24))
+  )
+  
+  # Initial obs object
+  obs = list(step = Data[[1]]$step, angle = Data[[1]]$angle)
+  
+  # Create objective function once for each nObs
+  obj = MakeADFun(nllpHSMM, par, silent = TRUE)
+  
+  # Create a cluster of cores
+  cl = makeCluster(detectCores() - 2)
+  registerDoParallel(cl)
+  
+  # Parallel execution using foreach
+  result = foreach(i = 1:nruns,
+                   .packages = c("LaMa", "RTMB"), # export packages to workers
+                   .errorhandling = "pass") %dopar% {
+                     
+                     # Update the obs and dat environment for each iteration
+                     assign("obs", list(step = Data[[i]]$step, angle = Data[[i]]$angle), envir = .GlobalEnv)
+                     assign("dat", list(tod = Data[[i]]$tod, N = 3, agsizes = Agsizes[k,], Z = cbind(1, trigBasisExp(1:24))), envir = .GlobalEnv)
+                     
+                     # Fit the model, this will automatically use the new obs because DataEval() in nllpHSMM
+                     opt = nlminb(obj$par, obj$fn, obj$gr)
+                     
+                     # Get the model report
+                     mod = obj$report()
+                     
+                     # Return the beta values
+                     mod$beta
+                   }
+  
+  # Stop the cluster after execution
+  stopCluster(cl)
+  
+  # Store results in Betas
+  for(i in 1:nruns) Betas[,,i,k] = result[[i]]
+  
+  saveRDS(Betas[,,,k], file = paste0("./simulation_study/Results/Part1_aggregate_sizes/Betas", factors[k],".rds"))
+}
+
+saveRDS(Betas, file = "./simulation_study/Results/Part1_aggregate_sizes/Betas.rds")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Part 2: aggregate sizes -------------------------------------------------
@@ -54,10 +182,25 @@ nruns = 500
 Data = list()
 set.seed(123)
 # simulating 500 data sets of length T = 5000
-# for(i in 1:nruns){
-#   cat("\n", i)
-#   Data[[i]] = sim_phsmm(5000, beta, omega, stateparams)
-# }
+for(i in 1:nruns){
+  cat("\n", i)
+  Data[[i]] = sim_phsmm(5000, beta, omega, stateparams)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # fitting HSMMs with increasing aggregate sizes (as defined by factor)
 # for(k in 1:length(factors)){
@@ -82,16 +225,16 @@ color = c("orange", "deepskyblue", "seagreen2")
 
 ## Dwell time mean coefficients
 
-Betas = array(dim = c(3, 3, 500, 9))
-
-for(k in 1:length(factors)){
-  res = readRDS(paste0("./simulation_study/simulation_results/aggregate_size/results_", factors[k], ".rds"))
-  for(i in 1:nruns){
-    if(!is.character(res[[i]])){
-      Betas[,,i,k] = res[[i]]$beta
-    }
-  }
-}
+# Betas = array(dim = c(3, 3, 500, 9))
+# 
+# for(k in 1:length(factors)){
+#   res = readRDS(paste0("./simulation_study/simulation_results/aggregate_size/results_", factors[k], ".rds"))
+#   for(i in 1:nruns){
+#     if(!is.character(res[[i]])){
+#       Betas[,,i,k] = res[[i]]$beta
+#     }
+#   }
+# }
 
 
 # for(state in 1:3){

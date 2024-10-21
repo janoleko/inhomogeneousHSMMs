@@ -82,7 +82,7 @@ for(k in 1:length(nobs)){
   obj = MakeADFun(nllpHSMM, par, silent = TRUE)
   
   # Create a cluster of cores
-  cl = makeCluster(detectCores() - 1)
+  cl = makeCluster(detectCores() - 2)
   registerDoParallel(cl)
   
   # Parallel execution using foreach
@@ -109,63 +109,12 @@ for(k in 1:length(nobs)){
   
   # Store results in Betas
   for(i in 1:nruns) Betas[,,i,k] = result[[i]]
+  
+  saveRDS(Betas[,,,k], file = paste0("./simulation_study/Results/Part2_consistency/Betas", nobs[k],".rds"))
 }
 
 saveRDS(Betas, file = "./simulation_study/Results/Part2_consistency/Betas.rds")
 
-
-
-
-Betas = array(dim = c(3, 3, nruns, length(nobs)))
-
-# fitting HSMMs to data sets of increasing lengths
-for(k in 1:length(nobs)){
-  cat("Scenario", k, "\n")
-  cat("Number of observations:", nobs[k], "\n")
-  
-  # defining observations
-  obs = list(step = Data[[1]]$step[1:nobs[1]], angle = Data[[1]]$angle[1:nobs[1]])
-  
-  # defining other stuff
-  dat = list(tod = Data[[1]]$tod[1:nobs[[1]]],
-             N = 3, agsizes = agsizes, Z = cbind(1, trigBasisExp(1:24)))
-  
-  cat("Creating objective function...\n")
-  obj = MakeADFun(nllpHSMM, par, silent = TRUE)
-  
-  # for(i in 1:nruns){
-  #   cat(i, "\n")
-  #   obs = list(step = Data[[i]]$step[1:nobs[k]], angle = Data[[i]]$angle[1:nobs[k]])
-  #   
-  #   
-  #   opt = nlminb(obj$par, obj$fn, obj$gr)
-  #   
-  #   mod = obj$report()
-  #   Betas[,,i,k] = mod$beta
-  # }
-
-  # Create a cluster of cores
-  cl = makeCluster(detectCores()-1)
-  registerDoParallel(cl)
-  
-  result = foreach(i = 1:nruns,
-                   .packages = c("LaMa", "RTMB"),
-                   .export = c("obj", "dat"),
-                   .errorhandling = "pass") %dopar% {
-
-    obs = list(step = Data[[i]]$step[1:nobs[k]], angle = Data[[i]]$angle[1:nobs[k]])
-
-    opt = nlminb(obj$par, obj$fn, obj$gr)
-
-    mod = obj$report()
-
-    mod$beta
-  }
-  stopCluster(cl)
-  
-  saveRDS(result,
-          file = paste0("./simulation_study/simulation_results/consistency/results_", nobs[k], ".rds"))
-}
 
 
 
@@ -255,16 +204,16 @@ for(k in 1:length(nobs)){
 
 ## Coefficients of trigonometric predictor
 N=3; K=1
-Betas = array(dim = c(N, 1+2*K, 500, 4))
-
-for(k in 1:length(nobs)){
-  res = readRDS(paste0("./simulation_study/simulation_results/consistency/results_", nobs[k], ".rds"))
-  for(i in 1:nruns){
-    if(!is.character(res[[i]])){
-      Betas[,,i,k] = res[[i]]$beta
-    }
-  }
-}
+# Betas = array(dim = c(N, 1+2*K, 500, 4))
+# 
+# for(k in 1:length(nobs)){
+#   res = readRDS(paste0("./simulation_study/simulation_results/consistency/results_", nobs[k], ".rds"))
+#   for(i in 1:nruns){
+#     if(!is.character(res[[i]])){
+#       Betas[,,i,k] = res[[i]]$beta
+#     }
+#   }
+# }
 
 # for(state in 1:3){
 #   #pdf(file = paste0("./figures/simulation/consistency_state", state, ".pdf"), width=8, height=5)
