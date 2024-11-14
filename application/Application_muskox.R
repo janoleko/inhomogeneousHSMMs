@@ -95,9 +95,10 @@ plot(muskox$step[1:1000], type = "h", bty = "n", ylab = "step length (meters)", 
 
 # pdf("./figures/muskox_hist.pdf", width = 8, height = 5)
 par(mfrow = c(1,2))
-hist(muskox$step, prob = T, main = "", bor = "white", xlab = "step length (meters)", ylab = "density", 
-     xlim = c(0,500), breaks = 100, ylim = c(0, 0.01))
-hist(muskox$angle, prob = T, breaks = 25, main = "", bor = "white", xlab = "turning angle (radians)", ylab = "density", xaxt = "n")
+hist(muskox$step, prob = T, breaks = 100, bor = "white", xlim = c(0,600), ylim = c(0,0.01),
+     main = "", xlab = "step length", ylab = "density")
+hist(muskox$angle, prob = T, breaks = 20, bor = "white", xlim = c(-pi,pi), ylim = c(0,0.3),
+     main = "", xlab = "turning angle", ylab = "density", xaxt = "n")
 axis(1, at = c(-pi, -pi/2, 0, pi/2, pi), 
      labels = c(expression(-pi), expression(-pi/2), 
                 expression(0), expression(pi/2), expression(pi)))
@@ -129,6 +130,10 @@ source("./functions/auxiliary_functions.R")
 library(LaMa) # HMM and HSMM functions
 # install.packages("RTMB")
 library(RTMB) # automatic differentiation
+
+# detaching moveHMM to avoid name conflicts
+detach("package:moveHMM", unload = TRUE)
+
 
 
 # Fitting HMMs ------------------------------------------------------------
