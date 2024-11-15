@@ -66,13 +66,13 @@ C = C[1:n]
 
 emp_pmf = empirical_pmf(C, agsizes = c(10, 50))
 
-pdf("./figures/simulation/part4_empirical_pmf.pdf", width = 8, height = 4)
+# pdf("./figures/simulation/part4_empirical_pmf.pdf", width = 8, height = 4)
 par(mfrow = c(1,2))
 plot(1:10, as.numeric(emp_pmf[[1]]), type = "h", bty = "n", col = color[1], lwd = 2,
      ylab = "probabilities", xlab = "dwell time", main = "state 1", xlim = c(0,10))
 plot(1:25, as.numeric(emp_pmf[[2]][1:25]), type = "h", bty = "n", col = color[2], lwd = 2,
      ylab = "probabilities", xlab = "dwell time", main = "state 2", xlim = c(0,25))
-dev.off()
+# dev.off()
 
 
 # Writing likelihood functions --------------------------------------------
@@ -234,16 +234,20 @@ cov = data.frame(z = z2, state = mod$states)
 # computing quantiles of covariate
 quants = quantile(
   subset(cov, state %in% (agsizes[1] + 1:agsizes[2]))$z, 
-  probs = c(seq(0, 1, length = 6))
+  probs = c(0, 0.25, 0.5, 0.75, 1)
   )
-names(quants) = c("min", "20 %", "40 %", "60 %", "80 %", "max")
+# quants[3] = mean(subset(cov, state %in% (agsizes[1] + 1:agsizes[2]))$z)
+covsum = c(quants[1:2],
+           mean(subset(cov, state %in% (agsizes[1] + 1:agsizes[2]))$z),
+           quants[3:5])
+names(covsum) = c("min", "first quartile", "mean", "median", "third quartile", "max")
 
 
 # pdf("./figures/simulation/pmf_quants.pdf", width = 7, height = 4)
 par(mfrow = c(2,3))
-for(i in 1:length(quants)){
-  pmft = dpois(1:40-1, lambda = exp(par$beta[2,1] + par$beta[2,2] * quants[i]))
+for(i in 1:length(covsum)){
+  pmft = dpois(1:40-1, lambda = exp(par$beta[2,1] + par$beta[2,2] * covsum[i]))
   plot(1:40, pmft, type = "h", lwd = 1.5, bty = "n", col = color[2], xlim = c(0, 40), 
-       main = names(quants)[i], xlab = "dwell time", ylab = "probabilities")
+       main = names(covsum)[i], xlab = "dwell time", ylab = "probabilities")
 }
-#dev.off()
+# dev.off()
