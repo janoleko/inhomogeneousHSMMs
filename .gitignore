@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.RTMB
+.functions/mllkihsmm.R
+.functions/mllkihsmm_RTMB.R
+.functions/Likelihoods.R
